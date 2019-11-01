@@ -1,0 +1,6 @@
+language: cpp
+dist: xenial
+script: 
+- cd src
+- g++ CuTest.cpp Server.cpp testServerStartup_CuTest.cpp  AllTests.cpp -pthread -lrt -I../include
+- ./a.out
