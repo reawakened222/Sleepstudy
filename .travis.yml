@@ -21,7 +21,7 @@ script:
 - cd src
 - chmod u+x ./build
 - chmod u+x ./c
-- ./build server
+- ./build mathServer
 - cd ../test
 - make
 - ../src/mathServer &
