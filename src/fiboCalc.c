@@ -8,6 +8,7 @@ long int getFibo(int nr)
     return getFibo(nr-1) + getFibo(nr-2);
 }
 
+#define ITERATIONS 10
 int main(int argc, char** argv)
 {
     int i = 0;
@@ -17,15 +18,15 @@ int main(int argc, char** argv)
     return -1;
     int fiboNr = atoi(argv[1]);
     volatile long int fib;
-    printf("Calculating fibo(%d)\n", fiboNr);
+    printf("Calculating fibo(%d) %d times\n", fiboNr, ITERATIONS);
     begin = clock();
-    for(i = 0; i < 100; i++)
+    for(i = 0; i < ITERATIONS; i++)
     {
         fib = getFibo(fiboNr);
     }
     end = clock();
-    printf("100 iterations took %lld seconds\n", (end - begin) / CLOCKS_PER_SEC);
-    printf("%ld", fib);
+    printf("%d iterations took %f seconds\n", ITERATIONS, ((double) end - begin) / CLOCKS_PER_SEC);
+    printf("Average time: %f seconds\n", ((double) end - begin) / CLOCKS_PER_SEC / ITERATIONS);
 
     return 0;
 }

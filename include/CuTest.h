@@ -100,6 +100,8 @@ typedef struct
 	int count;
 	CuTest* list[MAX_TEST_CASES];
 	int failCount;
+	
+	float execTimes[MAX_TEST_CASES];
 
 } CuSuite;
 

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #include "CuTest.h"
 
@@ -239,7 +240,8 @@ void CuSuiteInit(CuSuite* testSuite)
 {
 	testSuite->count = 0;
 	testSuite->failCount = 0;
-        memset(testSuite->list, 0, sizeof(testSuite->list));
+	memset(testSuite->list, 0, sizeof(testSuite->list));
+	memset(testSuite->execTimes, 0, sizeof(testSuite->execTimes));
 }
 
 CuSuite* CuSuiteNew(void)
@@ -283,10 +285,14 @@ void CuSuiteAddSuite(CuSuite* testSuite, CuSuite* testSuite2)
 void CuSuiteRun(CuSuite* testSuite)
 {
 	int i;
+	clock_t begin, end;
 	for (i = 0 ; i < testSuite->count ; ++i)
 	{
 		CuTest* testCase = testSuite->list[i];
+		begin = clock();
 		CuTestRun(testCase);
+		end = clock();
+		testSuite->execTimes[i] = ((float)(end - begin)) / CLOCKS_PER_SEC;
 		if (testCase->failed) { testSuite->failCount += 1; }
 	}
 }
@@ -306,7 +312,10 @@ void CuSuiteDetails(CuSuite* testSuite, CuString* details)
 {
 	int i;
 	int failCount = 0;
-
+	for(i = 0; i < testSuite->count; i++)
+	{
+		CuStringAppendFormat(details, "Testcase %d - Execution time %f:\n", (i+1), testSuite->execTimes[i], testSuite->failCount);
+	}
 	if (testSuite->failCount == 0)
 	{
 		int passCount = testSuite->count - testSuite->failCount;

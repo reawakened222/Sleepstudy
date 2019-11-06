@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <time.h>
 #include "CuTest.h"
-
 int RunAllTests(void)
 {
 	CuString *output = CuStringNew();
@@ -12,9 +11,11 @@ int RunAllTests(void)
 	CuSuiteAddSuite(suite, ServerBasicFunctionalitySuite());
 
 	CuSuiteRun(suite);
+
 	CuSuiteSummary(suite, output);
 	CuSuiteDetails(suite, output);
 	printf("%s\n", output->buffer);
+		
 	return suite->failCount;
 }
 
