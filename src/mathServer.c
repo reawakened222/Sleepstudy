@@ -2,12 +2,11 @@
 #include <czmq.h>
 
 #include <stdlib.h>
-#include <signal.h>
-#include <string.h>
+#include <signal.h> 
+#include <string.h> 
 
 #ifdef _WINDOWS
-#define strcasecmp stricmp 
-
+#define strcasecmp stricmp
 #endif
 #include <stdio.h>
 #include <ctype.h>
@@ -16,6 +15,7 @@
 #include "Server.h"
 
 #include "mathFuncs.h"
+#include "stringHelperFuncs.h"
 
 #define PORTNR 5555
 
@@ -23,10 +23,12 @@
 #define USERMSG 1
 #define ADMINMSG 2
 
-int running = SERVER_RUNNING;
-zsock_t *responder;
-FILE* file_p;
+/* Global variables */
+int running = SERVER_RUNNING;   //Server status variable. Right now just a way to stop the running from within the program
+zsock_t *responder;             //Socket for server connections
+FILE* logFile_p;                //Log file pointer
 
+/*  */
 char* getClientConnectionString()
 {
     return "tcp://localhost:5555";
@@ -47,7 +49,7 @@ void logAndPrint(char* text)
     struct tm* localTime = gmtime(&startTime);
     char buf[100];
     makeTimeStamp(localTime, buf);
-    fprintf(file_p, "%s: %s", buf, text);
+    fprintf(logFile_p, "%s: %s", buf, text);
     printf("%s\n", text);
 }
 int getResponse(char* clientMsg, char* response)
@@ -56,12 +58,11 @@ int getResponse(char* clientMsg, char* response)
 
     /* Do something based on the messages received */
     if(stringBeginsWith(clientMsg, "Fibo(") == 0)
-    {
-        
+    {        
         /* Assume msg is Fibo(<nr>), so we extract the number */
         int nr = strToNum(&clientMsg[5], NULL);
 
-        /* Calculate the fibonacci nr */
+        /* Calculate and send response */
         long int fib = calcFibo(nr);
         printf("Calculated fibo(%d)=%ld\n", nr, fib);
         sprintf(response, "%ld", fib);
@@ -100,26 +101,32 @@ void signal_handler_callback(int signum)
     printf("Shutting down server ... Goodbye!\n");
     // Cleanup and close up stuff here
     zsock_destroy(&responder);
-    fclose(file_p);
+    fclose(logFile_p);
     // Terminate program
     exit(signum);
 }
 int main(void)
 {
+    /* Set some signal callbacks, for a more graceful server shutdown */
     signal(SIGINT, signal_handler_callback);
     signal(SIGSEGV, signal_handler_callback);
-    //  Socket to talk to clients
-    responder = zsock_new(ZMQ_REP);
+
+    /* Timing data */
     const time_t startTime = time(NULL);
     struct tm* localTime = gmtime(&startTime);
+
+    /* Make the log file */
     char logFileName[100] = "serverlog_";
     makeTimeStamp(localTime, &logFileName[strlen(logFileName)]);
     sprintf(&logFileName[strlen(logFileName)], ".log");
-    file_p = fopen(logFileName, "w+");
-    if(file_p == NULL)
+    logFile_p = fopen(logFileName, "w+");
+    if(logFile_p == NULL)
     {
         printf("Log file could not be created.\n");
     }
+
+    //  Socket to talk to clients
+    responder = zsock_new(ZMQ_REP);
     if (responder == NULL)
     {
         printf("Socket not created properly.\n");
@@ -140,8 +147,11 @@ int main(void)
         char* str = zstr_recv(responder);
         sprintf(logMsg, "MESSAGE RECEIVED: %s\n", str);
         logAndPrint(logMsg);
+
         /* Handle responses in a separate function */
         messageType = getResponse(str, response);
+
+        /* Take extra actions depending on the type of message */
         if(messageType == USERMSG)
         {
             /* Send response back */

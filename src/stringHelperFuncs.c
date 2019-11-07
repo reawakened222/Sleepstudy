@@ -1,6 +1,7 @@
 #include "stringHelperFuncs.h"
-#include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
+#include <string.h>         //strlen, strcmp
+#include <ctype.h>          //isdigit, isspace
 int stringBeginsWith_MatchCase(char* src, char* target, int bMatchCase)
 {
     int sourceLength, targetLength;
