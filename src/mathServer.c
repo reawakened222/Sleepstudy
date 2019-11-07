@@ -1,7 +1,8 @@
 //  Hello World server
 #include <czmq.h>
-#include <stdlib.h>
 
+#include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 
 #ifdef _WINDOWS
@@ -14,6 +15,8 @@
 
 #include "Server.h"
 
+#include "mathFuncs.h"
+
 #define PORTNR 5555
 
 /* Message levels, determines what server should do when messages are received */
@@ -21,31 +24,9 @@
 #define ADMINMSG 2
 
 int running = SERVER_RUNNING;
+zsock_t *responder;
+FILE* file_p;
 
-long int calcFibo(unsigned int n)
-{
-    if (n < 3)
-    {
-        return 1;
-    }
-    return calcFibo(n-1) + calcFibo(n-2);
-}
-long int calcPascal(unsigned int n, unsigned int k)
-{
-    if(n == 0 && k == 0)
-    {
-        return 1;
-    }
-    else if(k == 0 || k == n)
-    {
-        return 1;
-    }
-    if(k > n)
-    {
-        return -1;
-    }
-    return calcPascal(n-1, k-1) + calcPascal(n-1, k);
-}
 int stringBeginsWith_MatchCase(char* src, char* target, int bMatchCase)
 {
     int sourceLength, targetLength;
@@ -74,10 +55,7 @@ long int strToNum(char* nrStr, char** afterNum)
 {
     int i = 0;
     int length = strlen(nrStr);
-    for(i = 0; i < length && isdigit(nrStr[i]); i++)
-    {
-
-    }
+    for(i = 0; i < length && (isdigit(nrStr[i]) ||isspace(nrStr[i])); i++) {}
     char numStr[i+1];
     memcpy(numStr, nrStr, i);
     numStr[i] = '\0';
@@ -92,6 +70,21 @@ char* getClientConnectionString()
 int getServerStatus()
 {
     return running;
+}
+
+int makeTimeStamp(struct tm* time, char* result)
+{
+    sprintf(result, "%d-%02d-%02d_%02d%02d%02d", time->tm_year + 1900, time->tm_mon + 1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec);
+    return 0;
+}
+void logAndPrint(char* text)
+{    
+    const time_t startTime = time(NULL);
+    struct tm* localTime = gmtime(&startTime);
+    char buf[100];
+    makeTimeStamp(localTime, buf);
+    fprintf(file_p, "%s: %s", buf, text);
+    printf("%s\n", text);
 }
 int getResponse(char* clientMsg, char* response)
 {
@@ -137,11 +130,32 @@ int getResponse(char* clientMsg, char* response)
     }
     return result;
 }
-#define POLLTIME 500
+void signal_handler_callback(int signum)
+{
+    printf("Caught signal %d\n",signum);
+    printf("Shutting down server ... Goodbye!\n");
+    // Cleanup and close up stuff here
+    zsock_destroy(&responder);
+    fclose(file_p);
+    // Terminate program
+    exit(signum);
+}
 int main(void)
 {
+    signal(SIGINT, signal_handler_callback);
+    signal(SIGSEGV, signal_handler_callback);
     //  Socket to talk to clients
-    zsock_t *responder = zsock_new(ZMQ_REP);
+    responder = zsock_new(ZMQ_REP);
+    const time_t startTime = time(NULL);
+    struct tm* localTime = gmtime(&startTime);
+    char logFileName[100] = "serverlog_";
+    makeTimeStamp(localTime, &logFileName[strlen(logFileName)]);
+    sprintf(&logFileName[strlen(logFileName)], ".log");
+    file_p = fopen(logFileName, "w+");
+    if(file_p == NULL)
+    {
+        printf("Log file could not be created.\n");
+    }
     if (responder == NULL)
     {
         printf("Socket not created properly.\n");
@@ -154,15 +168,14 @@ int main(void)
     }
     printf("Waiting for messages ...\n");
     char response[50];
-    char timerValue[50];
-    int64_t begin = zclock_mono();
-    int timeSinceLastMessage;
-    int maxIdleTimeMs = 5000;
+    char logMsg[100];
     while (running == SERVER_RUNNING)
     {
         int messageType = 0;
         
         char* str = zstr_recv(responder);
+        sprintf(logMsg, "MESSAGE RECEIVED: %s\n", str);
+        logAndPrint(logMsg);
         /* Handle responses in a separate function */
         messageType = getResponse(str, response);
         if(messageType == USERMSG)
@@ -178,7 +191,8 @@ int main(void)
         {
             zstr_send(responder, "Sorry, I don't understand that request.\n");
         }
-
+        sprintf(logMsg, "RESPONSE SENT: %s\n", response);
+        logAndPrint(logMsg);
         zstr_free(&str);
     }
     printf("Shutting down server ... Goodbye!\n");
