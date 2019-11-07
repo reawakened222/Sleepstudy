@@ -19,10 +19,8 @@ before_install:
 - cd ..
 script: 
 - cd src
-- chmod u+x ./build
-- chmod u+x ./c
-- ./build mathServer
+- make build_server
 - cd ../test
-- make
+- make build_test
 - ../src/mathServer &
 - ./test

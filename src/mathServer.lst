@@ -1,0 +1,4 @@
+mathServer.o: I funktionen ”getResponse”:
+mathServer.c:(.text+0x2a9): odefinierad referens till ”calcPascal”
+mathServer.c:(.text+0x2f9): odefinierad referens till ”calcFibo”
+collect2: fel: ld returnerade avslutningsstatus 1

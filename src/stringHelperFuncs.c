@@ -1,5 +1,6 @@
 #include "stringHelperFuncs.h"
-#include <stdio>
+#include <stdio.h>
+#include <string.h>
 int stringBeginsWith_MatchCase(char* src, char* target, int bMatchCase)
 {
     int sourceLength, targetLength;
@@ -28,7 +29,7 @@ long int strToNum(char* nrStr, char** afterNum)
 {
     int i = 0;
     int length = strlen(nrStr);
-    for(i = 0; i < length && (isdigit(nrStr[i]) ||isspace(nrStr[i])); i++) {}
+    for(i = 0; i < length && (isdigit(nrStr[i]) || isspace(nrStr[i])); i++) {}
     char numStr[i+1];
     memcpy(numStr, nrStr, i);
     numStr[i] = '\0';
