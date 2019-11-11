@@ -19,7 +19,7 @@ before_install:
 - cd ..
 script: 
 - cd src
-- make build_travis
+- make build_server
 - cd ../test
 - make build_test
 - ../bin/mathServer &
