@@ -35,7 +35,12 @@
 *.i*86
 *.x86_64
 *.hex
+*.o 
+HelperScripts
 
+#binaries
+bin/*
+test/exec/*
 # Debug files
 *.dSYM/
 *.su
