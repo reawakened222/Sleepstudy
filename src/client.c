@@ -1,8 +1,7 @@
 //  Hello World client
 #include <czmq.h>
 #include <stdlib.h> //for EXIT_FAILURE
-#define FIBONR 42
-#define FIBORESULT "433494437"
+
 #define Secs (1000)
 int nullableStrCmp(char* str1, char* str2)
 {
@@ -29,18 +28,18 @@ int main(void)
     int request_nbr;
     char buf[20];
     int failedAsserts = 0;
-    for (request_nbr = 0; request_nbr < 5; request_nbr++)
+    int FIBONR = rand() % 20 + 1;
+    while(1)
     {
         sprintf(buf, "Fibo(%d)", FIBONR);
         printf("Sending %s\n", buf);
         
         zstr_send(requester, buf);
-        zclock_sleep(2500);
-        char *str = zstr_recv_nowait(requester);
-        failedAsserts += (nullableStrCmp(str, FIBORESULT) == 0) ? 0 : 1;
+        char *str = zstr_recv(requester);
         
         printf("Response: %s\n", str);
         zstr_free(&str);
+        zclock_sleep(rand() % 1000);
     }
     zstr_send(requester, "SHUTDOWN");
     zsock_destroy(&requester);

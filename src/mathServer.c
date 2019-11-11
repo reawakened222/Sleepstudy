@@ -95,6 +95,35 @@ int getResponse(char* clientMsg, char* response)
     }
     return result;
 }
+
+void server_worker_thread(zsock_t *pipe, void *args)
+{
+    //  Do some initialization
+    zsock_signal (pipe, 0);
+
+    bool terminated = false;
+    char buf[100];
+    while (!terminated) {
+        zmsg_t *msg = zmsg_recv (pipe);
+        if (!msg)
+            break;              //  Interrupted
+        char *command = zmsg_popstr (msg);
+        //  All actors must handle $TERM in this way
+        if (streq (command, "$TERM"))
+            terminated = true;
+        else
+        //  This is an example command for our test actor
+        if (getResponse(command, buf))
+            zstr_send (pipe, buf);
+        else {
+            puts ("E: invalid message to actor");
+            assert (false);
+        }
+        freen (command);
+        zmsg_destroy (&msg);
+    }
+}
+
 void signal_handler_callback(int signum)
 {
     printf("Caught signal %d\n",signum);

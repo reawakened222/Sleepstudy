@@ -1,0 +1,6 @@
+#!/bin/bash
+CLIENTPATH="/mnt/c/Linux_Programs/Research_DelayStudy/Sleepstudy/src"
+for i in {1..20}
+do
+    $CLIENTPATH/client &
+done
