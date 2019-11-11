@@ -22,5 +22,5 @@ script:
 - make build_travis
 - cd ../test
 - make build_test
-- ../src/mathServer &
-- ./test
+- ../bin/mathServer &
+- ./exec/test
