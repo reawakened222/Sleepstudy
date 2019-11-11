@@ -4,7 +4,7 @@
 #include <ctype.h>          //isdigit, isspace
 int stringBeginsWith_MatchCase(char* src, char* target, int bMatchCase)
 {
-    int sourceLength, targetLength;
+    size_t sourceLength, targetLength;
     sourceLength = strlen(src);
     targetLength = strlen(target);
     /* Check if substring is longer than target string */
@@ -26,12 +26,13 @@ int stringBeginsWith(char* src, char* target)
 {
     return stringBeginsWith_MatchCase(src, target, 0);
 }
+#define MAXNUMLENGTH 32
 long int strToNum(char* nrStr, char** afterNum)
 {
-    int i = 0;
-    int length = strlen(nrStr);
+    size_t i = 0;
+    size_t length = strlen(nrStr);
+    char numStr[MAXNUMLENGTH + 1];
     for(i = 0; i < length && (isdigit(nrStr[i]) || isspace(nrStr[i])); i++) {}
-    char numStr[i+1];
     memcpy(numStr, nrStr, i);
     numStr[i] = '\0';
     if(afterNum != NULL)

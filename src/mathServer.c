@@ -17,19 +17,17 @@
 #include "mathFuncs.h"
 #include "stringHelperFuncs.h"
 
-#define PORTNR 5555
-
 /* Message levels, determines what server should do when messages are received */
 #define USERMSG 1
 #define ADMINMSG 2
 
 /* Global variables */
-int running = SERVER_RUNNING;   //Server status variable. Right now just a way to stop the running from within the program
-zsock_t *responder;             //Socket for server connections
-FILE* logFile_p;                //Log file pointer
+static int running = SERVER_RUNNING;   //Server status variable. Right now just a way to stop the running from within the program
+static zsock_t *responder;             //Socket for server connections
+static FILE* logFile_p;                //Log file pointer
 
 /*  */
-char* getClientConnectionString()
+static char* getClientConnectionString()
 {
     return "tcp://localhost:5555";
 }
@@ -38,12 +36,12 @@ int getServerStatus()
     return running;
 }
 
-int makeTimeStamp(struct tm* time, char* result)
+static int makeTimeStamp(struct tm* time, char* result)
 {
     sprintf(result, "%d-%02d-%02d_%02d%02d%02d", time->tm_year + 1900, time->tm_mon + 1, time->tm_mday, time->tm_hour, time->tm_min, time->tm_sec);
     return 0;
 }
-void logAndPrint(char* text)
+static void logAndPrint(char* text)
 {    
     const time_t startTime = time(NULL);
     struct tm* localTime = gmtime(&startTime);
@@ -52,7 +50,7 @@ void logAndPrint(char* text)
     fprintf(logFile_p, "%s: %s", buf, text);
     printf("%s\n", text);
 }
-int getResponse(char* clientMsg, char* response)
+static int getResponse(char* clientMsg, char* response)
 {
     int result = 0;
 
@@ -72,16 +70,16 @@ int getResponse(char* clientMsg, char* response)
     {
         /* Assume message looks like Pascal(<k>,<n>) */
         char * afterFirstNum;
-        int firstNum = strToNum(&clientMsg[7], &afterFirstNum);
+        long int firstNum = strToNum(&clientMsg[7], &afterFirstNum);
         /* afterFirstNum should point past the first number, i.e. the comma */
-        int secNum = strToNum(afterFirstNum+1, NULL);
+        long int secNum = strToNum(afterFirstNum+1, NULL);
         long int pascalNr = calcPascal(firstNum, secNum);
 
-        printf("Calculated Pascal(%d, %d)=%ld\n", firstNum, secNum, pascalNr);
+        printf("Calculated Pascal(%ld, %ld)=%ld\n", firstNum, secNum, pascalNr);
         sprintf(response, "%ld", pascalNr);
         result = USERMSG;
     }
-    else if(stringBeginsWith_MatchCase(clientMsg, "Hello", 1) == 0)
+    else if(stringBeginsWith_MatchCase(clientMsg, (char*)"Hello", 1) == 0)
     {
         sprintf(response, "HELLO");
         result = USERMSG;
@@ -96,13 +94,18 @@ int getResponse(char* clientMsg, char* response)
     return result;
 }
 
-void server_worker_thread(zsock_t *pipe, void *args)
+#define NR_OF_WORKERS 10
+#define MSGSIZE 100
+static zactor_t* background_server_workers[NR_OF_WORKERS];
+static char response[NR_OF_WORKERS][MSGSIZE];
+static void server_worker_thread(zsock_t *pipe, void *args)
 {
     //  Do some initialization
     zsock_signal (pipe, 0);
 
     bool terminated = false;
-    char buf[100];
+    long int actorNr = (long int) args;
+    printf("Started Actor nr %ld\n", actorNr);
     while (!terminated) {
         zmsg_t *msg = zmsg_recv (pipe);
         if (!msg)
@@ -111,20 +114,20 @@ void server_worker_thread(zsock_t *pipe, void *args)
         //  All actors must handle $TERM in this way
         if (streq (command, "$TERM"))
             terminated = true;
-        else
-        //  This is an example command for our test actor
-        if (getResponse(command, buf))
-            zstr_send (pipe, buf);
         else {
-            puts ("E: invalid message to actor");
-            assert (false);
+            //  This is an example command for our test actor
+            if (getResponse(command, response[actorNr]))
+                zstr_send (pipe, response[actorNr]);
+            else {
+                puts ("E: invalid message to actor");
+            }
         }
         freen (command);
         zmsg_destroy (&msg);
     }
 }
 
-void signal_handler_callback(int signum)
+static void signal_handler_callback(int signum)
 {
     printf("Caught signal %d\n",signum);
     printf("Shutting down server ... Goodbye!\n");
@@ -155,7 +158,7 @@ int main(void)
     }
 
     //  Socket to talk to clients
-    responder = zsock_new(ZMQ_REP);
+    responder = zsock_new(ZMQ_ROUTER);
     if (responder == NULL)
     {
         printf("Socket not created properly.\n");
@@ -166,9 +169,14 @@ int main(void)
     {
         printf("zsock_bind returned %d\n", rc);
     }
-    printf("Waiting for messages ...\n");
-    char response[50];
     char logMsg[100];
+    int nextIdleWorker = 0;
+    /* Spawn a number of workers */
+    for(int i = 0; i < NR_OF_WORKERS; i++)
+    {
+        background_server_workers[i] = zactor_new(server_worker_thread, (void*)i);
+    }
+    printf("Waiting for messages ...\n");
     while (running == SERVER_RUNNING)
     {
         int messageType = 0;
@@ -176,15 +184,17 @@ int main(void)
         char* str = zstr_recv(responder);
         sprintf(logMsg, "MESSAGE RECEIVED: %s\n", str);
         logAndPrint(logMsg);
-
+        
+        zstr_send(background_server_workers[nextIdleWorker], str);
+        char * client_response = zstr_recv(background_server_workers[nextIdleWorker]);
         /* Handle responses in a separate function */
-        messageType = getResponse(str, response);
+        //messageType = getResponse(str, response);
 
         /* Take extra actions depending on the type of message */
         if(messageType == USERMSG)
         {
             /* Send response back */
-            zstr_send(responder, response);
+            zstr_send(responder, client_response);
         }
         else if(messageType == ADMINMSG)
         {
@@ -194,10 +204,14 @@ int main(void)
         {
             zstr_send(responder, "Sorry, I don't understand that request.\n");
         }
-        sprintf(logMsg, "RESPONSE SENT: %s\n", response);
+        sprintf(logMsg, "RESPONSE SENT: %s\n", client_response);
         logAndPrint(logMsg);
         zstr_free(&str);
     }
     printf("Shutting down server ... Goodbye!\n");
+    for(int i = 0; i < NR_OF_WORKERS; i++)
+    {
+        zactor_destroy(&background_server_workers[i]);
+    }
     return 0;
 }

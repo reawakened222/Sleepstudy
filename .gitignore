@@ -35,11 +35,11 @@
 *.i*86
 *.x86_64
 *.hex
-*.o 
 HelperScripts
 
 #binaries
 bin/*
+!bin/Debug
 test/exec/*
 # Debug files
 *.dSYM/
@@ -58,3 +58,7 @@ dkms.conf
 
 # Files generated during execution
 *.log
+
+#config files
+*.json
+.vscode/launch.json
