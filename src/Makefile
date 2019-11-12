@@ -15,8 +15,16 @@ stringHelperFuncs.o:
 mathServer.o: $(OBJECTS)
 	gcc -c $(CFLAGS) $(OBJECTS) mathServer.c
 
-build_server: $(OBJECTS) mathServer.o 
+$(TARGET_BUILD_DIR): 
+	@echo "Creating folder $(TARGET_BUILD_DIR)"
+	mkdir -p $(@) 
+build_server: $(OBJECTS) mathServer.o $(TARGET_BUILD_DIR)
 	gcc -O2 $(CFLAGS) $(OBJECTS) mathServer.o -o $(TARGET_BUILD_DIR)/mathServer $(LIB_FLAGS)
 
-build_debug: $(OBJECTS) mathServer.o
+
+build_debug: $(OBJECTS) mathServer.o $(TARGET_BUILD_DIR)
 	gcc -g -O0 $(CFLAGS) $(OBJECTS) mathServer.o -o $(TARGET_BUILD_DIR)/mathServer_DBG $(LIB_FLAGS)
+
+clean:
+	rm -f *.log
+	cd $(TARGET_BUILD_DIR) && rm -f *
