@@ -55,8 +55,7 @@ int getMessageNoWait(char** msg_p)
     return msgLen;
 }
 int sleep_MS(int msToSleep)
-{
-    
+{    
     usleep(msToSleep * 1000);
     return 0;
 }
