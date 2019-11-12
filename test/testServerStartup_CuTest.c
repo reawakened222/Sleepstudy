@@ -56,7 +56,8 @@ int getMessageNoWait(char** msg_p)
 }
 int sleep_MS(int msToSleep)
 {
-    zclock_sleep(msToSleep);
+    
+    usleep(msToSleep * 1000);
     return 0;
 }
 
@@ -92,7 +93,7 @@ void testServerConnection(CuTest* tc)
     /* Give the server some time to respond to this message 
        If it does not manage within this time, it means it is not in a state where it would make sense to run the remaining tests
     */
-    sleep_MS(1000);
+    sleep_MS(2000);
     char* response = NULL;
     getMessageNoWait(&response);
     if(response == NULL)
@@ -139,7 +140,7 @@ void TestFunctionalityCalcFib45(CuTest * tc)
     beforeTest();
     sendMessage("Fibo(45)");
     char* resMsg = NULL;
-    sleep_MS(10000); /* This is a long one, let's give it 10 seconds to be safe */
+    sleep_MS(5000); /* This is a long one, let's give it 5 seconds to be safe */
 
     getMessageNoWait(&resMsg);
     CuAssertStrEquals(tc, FIB45, resMsg);

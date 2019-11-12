@@ -6,20 +6,23 @@ CC_FLAGS=-D_REENTRANT -D_GNU_SOURCE -Wall -Wno-unused -fno-strict-aliasing  -DBA
 CFLAGS=$(PROJECT_INCL_PATH) $(CC_FLAGS)
 OBJECTS = mathFuncs.o stringHelperFuncs.o
 
-mathFuncs.o:
+mathFuncs.o: mathFuncs.c
 	gcc -c $(PROJECT_INCL_PATH) mathFuncs.c 
 	
-stringHelperFuncs.o:
+stringHelperFuncs.o: stringHelperFuncs.c
 	gcc -c $(PROJECT_INCL_PATH) stringHelperFuncs.c
 
-mathServer.o: $(OBJECTS)
-	gcc -c $(CFLAGS) $(OBJECTS) mathServer.c
+mathServer.o: $(OBJECTS) mathServer.c
+	gcc -c $(CFLAGS) mathServer.c
 
 $(TARGET_BUILD_DIR): 
 	@echo "Creating folder $(TARGET_BUILD_DIR)"
 	mkdir -p $(@) 
 build_server: $(OBJECTS) mathServer.o $(TARGET_BUILD_DIR)
 	gcc -O2 $(CFLAGS) $(OBJECTS) mathServer.o -o $(TARGET_BUILD_DIR)/mathServer $(LIB_FLAGS)
+
+build_and_start: build_server
+	$(TARGET_BUILD_DIR)/mathServer &
 
 
 build_debug: $(OBJECTS) mathServer.o $(TARGET_BUILD_DIR)
