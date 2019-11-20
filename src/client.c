@@ -15,6 +15,16 @@ int nullableStrCmp(char* str1, char* str2)
     }
     return strcmp(str1,str2);
 }
+int fastFibo(int n)
+{
+    int a = 1, b = 1, c = 1, i;
+	for (i = 3; i <= n; i++) {
+		c = a + b;
+		a = b;
+		b = c;
+	}
+    return c;
+}
 int main(void)
 {    
     printf("Connecting to hello world server…\n");
@@ -29,6 +39,8 @@ int main(void)
     char buf[20];
     int failedAsserts = 0;
     int FIBONR = rand() % 20 + 1;
+    char expect[20];
+    sprintf(expect, "%d", fastFibo(FIBONR));
     while(1)
     {
         sprintf(buf, "Fibo(%d)", FIBONR);
@@ -36,12 +48,11 @@ int main(void)
         
         zstr_send(requester, buf);
         char *str = zstr_recv(requester);
-        
-        printf("Response: %s\n", str);
+        printf("Got <%s> expected <%s>\n", str, expect);
+        assert(strcmp(expect, str) == 0);
         zstr_free(&str);
         zclock_sleep(rand() % 1000);
     }
     zstr_send(requester, "SHUTDOWN");
     zsock_destroy(&requester);
-    return (failedAsserts != 0) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

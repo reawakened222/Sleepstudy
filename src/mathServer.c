@@ -56,7 +56,7 @@ static void logAndPrint(char* text)
         logCount = 0;
     }
 }
-static int getResponse(char* clientMsg, char* response)
+static int getResponse(int workerID, char* clientMsg, char* response)
 {
     int handled = MESSAGE_NOT_HANDLED;
     /* Do something based on the messages received */
@@ -108,7 +108,7 @@ static void server_worker_thread(zsock_t *pipe, void *args)
         if (streq (command, "$TERM"))
             terminated = true;
         else {
-            if (getResponse(command, response[actorNr])){
+            if (getResponse(actorNr, command, response[actorNr])){
                 //zstr_send (pipe, response[actorNr]);
             }
             else {
@@ -154,13 +154,23 @@ static int serverMessageHandler(char* msg, char server_response[MSGSIZE+1])
     }
     return 0;
 }
-
-int main(void)
+static zsock_t* makeSocket(const char* connectionString, int socketType)
 {
-    /* Set some signal callbacks, for a more graceful server shutdown */
-    signal(SIGINT, signal_handler_callback);
-    signal(SIGSEGV, signal_handler_callback);
+    zsock_t * sock = zsock_new(socketType);
+    if (sock == NULL)
+    {
+        return NULL;
+    }
+    int rc = zsock_bind(sock, connectionString);
 
+    if (rc != 5555)
+    {
+        printf("zsock_bind returned %d\n", rc);
+    }
+    return sock;
+}
+static int setupServer()
+{
     /* Timing data */
     const time_t startTime = time(NULL);
     struct tm* localTime = gmtime(&startTime);
@@ -174,18 +184,23 @@ int main(void)
     {
         printf("Log file could not be created.\n");
     }
+}
+int printServerStatus()
+{
 
+}
+int main(void)
+{
+    /* Set some signal callbacks, for a more graceful server shutdown */
+    signal(SIGINT, signal_handler_callback);
+    signal(SIGSEGV, signal_handler_callback);
+    
+    setupServer();
     //  Socket to talk to clients
-    responder = zsock_new(ZMQ_REP);
+    responder = makeSocket("tcp://*:5555", ZMQ_REP);
     if (responder == NULL)
     {
         printf("Socket not created properly.\n");
-    }
-    int rc = zsock_bind(responder, "tcp://*:5555");
-
-    if (rc != 5555)
-    {
-        printf("zsock_bind returned %d\n", rc);
     }
     char logMsg[1024];
     int nextIdleWorker = 0;
@@ -226,13 +241,14 @@ int main(void)
             {
                 sprintf(logMsg, "Forwarding to actor %d - %s\n", nextIdleWorker, client_msg);
                 logAndPrint(logMsg);
-                /* Send it to an actor, check response eventually */            
+                /* Send it to an actor, check response eventually */
                 zstr_send(background_server_workers[nextIdleWorker], client_msg);
-                nextIdleWorker = (nextIdleWorker + 1) % NR_OF_WORKERS; 
+                nextIdleWorker = (nextIdleWorker + 1) % NR_OF_WORKERS;
             }
 
             zstr_free(&client_msg);
         }
+        
         for(i = 0; i < NR_OF_WORKERS; i++)
         {
             //char * worker_response = zstr_recv_nowait(background_server_workers[nextIdleWorker]);
@@ -246,7 +262,6 @@ int main(void)
             }
         }
     }
-    printf("Shutting down server ... Goodbye!\n");
     teardown();
     return 0;
 }

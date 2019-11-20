@@ -19,9 +19,26 @@ int RunAllTests(void)
 	return suite->failCount;
 }
 
-int main(void)
+int main(int argc, char* argv[])
 {
-	int nrOfFailedTests = RunAllTests();
+	if(argc < 2)
+	{
+		int nrOfFailedTests = RunAllTests();
 
-	return (nrOfFailedTests == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+		return (nrOfFailedTests == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+	}
+	else
+	{
+		/* Soak mode */
+		int nrOfTestExecutionFailures = 0;
+		int nrOfSoakRuns = atoi(argv[1]);
+
+		for (int i = 0; i < nrOfSoakRuns; i++)
+		{
+			nrOfTestExecutionFailures += (RunAllTests() == 0) ? 0 : 1;
+		}
+		printf("Nr of Test Executions: %d\n", nrOfSoakRuns);
+		printf("Nr of Failed Test Executions: %d\n", nrOfTestExecutionFailures);
+		printf("Flakiness: %f%%\n", ((float)nrOfTestExecutionFailures / nrOfSoakRuns) * 100);
+	}
 }

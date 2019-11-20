@@ -7,7 +7,18 @@ long int getFibo(int nr)
 
     return getFibo(nr-1) + getFibo(nr-2);
 }
-
+int fastFibo(int n)
+{
+    int a = 1, b = 1, c = 1, i;
+	for (i = 3; i <= n; i++) {
+		c = a + b;
+		a = b;
+		b = c;
+	}
+    return c;
+}
+//#define CLOCKTEST
+#ifdef CLOCKTEST
 #define ITERATIONS 10
 int main(int argc, char** argv)
 {
@@ -30,3 +41,19 @@ int main(int argc, char** argv)
 
     return 0;
 }
+#else
+int main(int argc, char** argv)
+{
+    int i = 0;
+
+    if(argc <= 0)
+    return -1;
+    int maxFiboNr = atoi(argv[1]);
+    for(i = 1; i < maxFiboNr; i++)
+    {
+        printf("%d\n", fastFibo(i));
+    }
+
+    return 0;
+}
+#endif
