@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+#CMake file generated
+CMakeFiles/
+
+#Project custom stuff
+serverlog_*.log
+bin/
+build*/
+test/build/

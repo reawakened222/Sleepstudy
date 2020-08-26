@@ -1,0 +1,15 @@
+{
+    "DelaySignatures": ["sleep_MS"],
+    "DelayArgIndex": ["0"],
+    "SignatureDelayType": ["sleep"],
+    
+    "DelayChecker":{
+        "scalingFactor": 0.001,
+        "scaledUnitName": "Seconds"
+        
+    },
+    "DelayTrimmer":{
+        "percentage": 90,
+        "maxTries": 5
+    }
+}

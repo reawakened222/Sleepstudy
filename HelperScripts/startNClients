@@ -1,0 +1,8 @@
+#!/bin/bash
+CLIENTPATH="/c/Linux_Programs/Research_DelayStudy/Sleepstudy/bin"
+export LD_LIBRARY_PATH=/usr/local/lib
+for i in {1..10}
+do
+    $CLIENTPATH/client &
+    sleep 1
+done

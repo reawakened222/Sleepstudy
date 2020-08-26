@@ -42,7 +42,6 @@ int main(void)
         printf("Response: %s\n", str);
         zstr_free(&str);
     }
-    zstr_send(requester, "SHUTDOWN");
     zsock_destroy(&requester);
     return (failedAsserts != 0) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

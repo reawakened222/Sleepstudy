@@ -2,14 +2,17 @@
 #include <stdlib.h>
 #include <time.h>
 #include "CuTest.h"
+#include <assert.h>
+#include "testSuites.h"
 int RunAllTests(void)
 {
 	CuString *output = CuStringNew();
 	CuSuite* suite = CuSuiteNew();
 
 	/* Setup test suites */
-	CuSuiteAddSuite(suite, ServerBasicFunctionalitySuite());
-
+	CuSuite* testSuite = ServerBasicFunctionalitySuite();
+	assert(testSuite);
+	CuSuiteAddSuite(suite, testSuite);
 	CuSuiteRun(suite);
 
 	CuSuiteSummary(suite, output);

@@ -7,6 +7,7 @@
 #include "debugFuncWrappers.h"
 #include <czmq.h>
 #include "CuTest.h"
+#include "testSuites.h"
 
 /* Some test framework functions */
 zsock_t* clientSocket = NULL;
@@ -39,7 +40,7 @@ int getMessageNoWait(char** msg_p)
 {
     char* msg = zstr_recv_nowait(clientSocket);
     if(msg == NULL)
-        return;
+        return -1;
     int msgLen = strlen(msg);
     if(msgLen <= 0)
     {
@@ -62,6 +63,7 @@ int sleep_MS(int msToSleep)
 
 int beforeTest()
 {
+    printf("Running beforetest\n");
     if(clientSocket == NULL)
     {
         clientSocket = zsock_new(ZMQ_REQ);
@@ -69,10 +71,11 @@ int beforeTest()
     }
     return 0;
 }
+
+/* Consume and throw away any waiting messages */
 int consumeMsg()
 {
-    char* msg = zstr_recv(clientSocket);
-    printf("DEBUG: Message consumed: %s\n", msg);
+    while(zstr_recv(clientSocket)) {}
     return 0;
 }
 int afterTest()
@@ -108,12 +111,14 @@ void testServerConnection(CuTest* tc)
 }
 
 #define FIB32 "2178309"
-void TestFunctionalityCalcFib32(CuTest * tc)
+void testFunctionalityCalcFib32(CuTest * tc)
 {
     beforeTest();
     sendMessage("Fibo(32)");
     char* resMsg = NULL;
     sleep_MS(50);
+    /* Note: This is to test the detection and fixing of flaky delays.
+     * NoWait is Bad, and here we should tell the user!!! */
     getMessageNoWait(&resMsg);
     CuAssertStrEquals(tc, FIB32, resMsg);
     free(resMsg);
@@ -121,28 +126,14 @@ void TestFunctionalityCalcFib32(CuTest * tc)
 }
 
 #define FIB40 "102334155"
-void TestFunctionalityCalcFib40(CuTest * tc)
+void testFunctionalityCalcFib40(CuTest * tc)
 {
     beforeTest();
     sendMessage("Fibo(40)");
     char* resMsg = NULL;
-    sleep_MS(1100); /* No observed runs over 1100ms. Adding ~150ms as safety margin */
+    sleep_MS(1200); /* No observed runs over 1100ms. Adding ~100ms as safety margin */
     getMessageNoWait(&resMsg);
     CuAssertStrEquals(tc, FIB40, resMsg);
-    free(resMsg);
-    afterTest();
-}
-
-#define FIB45 "1134903170"
-void TestFunctionalityCalcFib45(CuTest * tc)
-{
-    beforeTest();
-    sendMessage("Fibo(45)");
-    char* resMsg = NULL;
-    sleep_MS(10000); /* This is a long one, let's give it 10 seconds to be safe */
-
-    getMessageNoWait(&resMsg);
-    CuAssertStrEquals(tc, FIB45, resMsg);
     free(resMsg);
     afterTest();
 }
@@ -151,8 +142,7 @@ CuSuite * ServerBasicFunctionalitySuite(void)
 {
     CuSuite * s = CuSuiteNew();
     SUITE_ADD_TEST(s, testServerConnection);
-    SUITE_ADD_TEST(s, TestFunctionalityCalcFib32);
-    SUITE_ADD_TEST(s, TestFunctionalityCalcFib40);
-    SUITE_ADD_TEST(s, TestFunctionalityCalcFib45);
+    SUITE_ADD_TEST(s, testFunctionalityCalcFib32);
+    SUITE_ADD_TEST(s, testFunctionalityCalcFib40);
     return s;
 }
